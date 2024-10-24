@@ -13,9 +13,9 @@ from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.datasets import load_boston
 
-from nonconformist.base import RegressorAdapter
-from nonconformist.icp import IcpRegressor
-from nonconformist.nc import RegressorNc, AbsErrorErrFunc, RegressorNormalizer
+from nonconformist_DL.base import RegressorAdapter
+from nonconformist_DL.icp import IcpRegressor
+from nonconformist_DL.nc import RegressorNc, AbsErrorErrFunc, RegressorNormalizer
 
 # -----------------------------------------------------------------------------
 # Setup training, calibration and test indices

@@ -132,6 +132,7 @@ class MarginErrFunc(ClassificationErrFunc):
 		super(MarginErrFunc, self).__init__()
 
 	def apply(self, prediction, y):
+		prediction = prediction.copy()
 		prob = np.zeros(y.size, dtype=np.float32)
 		for i, y_ in enumerate(y):
 			if y_ >= prediction.shape[1]:
@@ -213,6 +214,14 @@ class BaseScorer(sklearn.base.BaseEstimator):
 	def score(self, x, y=None):
 		pass
 
+class BaseScoreDl(sklearn.base.BaseEstimator):
+	__metaclass__ = abc.ABCMeta
+	def __init__(self):
+		super(BaseScoreDl, self).__init__()
+
+	@abc.abstractmethod
+	def score(self, y_true, y_pred):
+		pass
 
 class RegressorNormalizer(BaseScorer):
 	def __init__(self, base_model, normalizer_model, err_func):
@@ -287,6 +296,9 @@ class NcFactory(object):
 				return RegressorNc(adapter, err_func, normalizer)
 			else:
 				return RegressorNc(adapter, err_func)
+
+
+
 
 
 class BaseModelNc(BaseScorer):
@@ -373,6 +385,44 @@ class BaseModelNc(BaseScorer):
 		return self.err_func.apply(prediction, y) / norm
 
 
+class BaseModelNcDl(BaseScoreDl):
+	"""Base class for nonconformity scorers based on an underlying model.
+
+	Parameters
+	----------
+	err_func : ClassificationErrFunc or RegressionErrFunc
+		Error function object.
+
+	normalizer : BaseScorer
+		Normalization model.
+
+	beta : float
+		Normalization smoothing parameter. As the beta-value increases,
+		the normalized nonconformity function approaches a non-normalized
+		equivalent.
+	"""
+	def __init__(self, err_func, beta=0):
+		super(BaseModelNcDl, self).__init__()
+		self.err_func = err_func
+		self.beta = beta
+		self.last_y = None, None
+		self.last_prediction = None
+		self.clean = False
+	
+	def score(self, y_true, y_pred):
+		"""Calculates the nonconformity score of a set of samples.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of examples for which to calculate a nonconformity score.
+
+		y : numpy array of shape [n_samples]
+			Outputs of examples for which to calculate a nonconformity score.
+   		"""
+		norm = np.ones(len(y_true))
+		return self.err_func.apply(y_pred, y_true) / norm
+
 # -----------------------------------------------------------------------------
 # Classification nonconformity scorers
 # -----------------------------------------------------------------------------
@@ -419,7 +469,11 @@ class ClassifierNc(BaseModelNc):
 		                                   normalizer,
 		                                   beta)
 
-
+class ClassifierNcDl(BaseModelNcDl):
+    def __init__(self, err_func=MarginErrFunc(), beta=0):
+        super(ClassifierNcDl, self).__init__(
+            err_func, beta)
+		
 # -----------------------------------------------------------------------------
 # Regression nonconformity scorers
 # -----------------------------------------------------------------------------

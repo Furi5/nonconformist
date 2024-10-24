@@ -12,14 +12,14 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.datasets import load_iris, load_diabetes
 
-from nonconformist.base import OobClassifierAdapter, OobRegressorAdapter
-from nonconformist.icp import OobCpClassifier, OobCpRegressor
-from nonconformist.nc import ClassifierNc, RegressorNc
+from nonconformist_DL.base import OobClassifierAdapter, OobRegressorAdapter
+from nonconformist_DL.icp import OobCpClassifier, OobCpRegressor
+from nonconformist_DL.nc import ClassifierNc, RegressorNc
 
-from nonconformist.evaluation import cross_val_score
-from nonconformist.evaluation import ClassIcpCvHelper, RegIcpCvHelper
-from nonconformist.evaluation import class_avg_c, class_mean_errors
-from nonconformist.evaluation import reg_mean_errors, reg_median_size
+from nonconformist_DL.evaluation import cross_val_score
+from nonconformist_DL.evaluation import ClassIcpCvHelper, RegIcpCvHelper
+from nonconformist_DL.evaluation import class_avg_c, class_mean_errors
+from nonconformist_DL.evaluation import reg_mean_errors, reg_median_size
 
 
 # -----------------------------------------------------------------------------

@@ -12,14 +12,14 @@ import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.datasets import load_iris
 
-from nonconformist.base import ClassifierAdapter
-from nonconformist.nc import  ClassifierNc
-from nonconformist.icp import IcpClassifier
-from nonconformist.acp import AggregatedCp
-from nonconformist.acp import BootstrapSampler, CrossSampler, RandomSubSampler
-from nonconformist.acp import BootstrapConformalClassifier
-from nonconformist.acp import CrossConformalClassifier
-from nonconformist.evaluation import class_mean_errors
+from nonconformist_DL.base import ClassifierAdapter
+from nonconformist_DL.nc import  ClassifierNc
+from nonconformist_DL.icp import IcpClassifier
+from nonconformist_DL.acp import AggregatedCp
+from nonconformist_DL.acp import BootstrapSampler, CrossSampler, RandomSubSampler
+from nonconformist_DL.acp import BootstrapConformalClassifier
+from nonconformist_DL.acp import CrossConformalClassifier
+from nonconformist_DL.evaluation import class_mean_errors
 
 # -----------------------------------------------------------------------------
 # Experiment setup

@@ -12,9 +12,9 @@ import pandas as pd
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.datasets import load_iris
 
-from nonconformist.base import ClassifierAdapter
-from nonconformist.icp import IcpClassifier
-from nonconformist.nc import ClassifierNc, MarginErrFunc
+from nonconformist_DL.base import ClassifierAdapter
+from nonconformist_DL.icp import IcpClassifier
+from nonconformist_DL.nc import ClassifierNc, MarginErrFunc
 
 # -----------------------------------------------------------------------------
 # Setup training, calibration and test indices

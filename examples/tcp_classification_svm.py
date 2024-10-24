@@ -12,10 +12,10 @@ import pandas as pd
 from sklearn.svm import SVC
 from sklearn.datasets import load_iris
 
-from nonconformist.base import ClassifierAdapter
-from nonconformist.cp import TcpClassifier
-from nonconformist.nc import ClassifierNc, MarginErrFunc
-from nonconformist.evaluation import class_mean_errors
+from nonconformist_DL.base import ClassifierAdapter
+from nonconformist_DL.cp import TcpClassifier
+from nonconformist_DL.nc import ClassifierNc, MarginErrFunc
+from nonconformist_DL.evaluation import class_mean_errors
 
 # -----------------------------------------------------------------------------
 # Setup training, calibration and test indices

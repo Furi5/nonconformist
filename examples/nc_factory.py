@@ -11,14 +11,14 @@ from sklearn.ensemble import RandomForestClassifier, RandomForestRegressor
 from sklearn.datasets import load_iris, load_diabetes
 from sklearn.neighbors import KNeighborsRegressor
 
-from nonconformist.nc import NcFactory
+from nonconformist_DL.nc import NcFactory
 
-from nonconformist.icp import IcpClassifier, IcpRegressor
-from nonconformist.icp import OobCpClassifier, OobCpRegressor
-from nonconformist.evaluation import cross_val_score
-from nonconformist.evaluation import ClassIcpCvHelper, RegIcpCvHelper
-from nonconformist.evaluation import class_avg_c, class_mean_errors
-from nonconformist.evaluation import reg_mean_errors, reg_median_size
+from nonconformist_DL.icp import IcpClassifier, IcpRegressor
+from nonconformist_DL.icp import OobCpClassifier, OobCpRegressor
+from nonconformist_DL.evaluation import cross_val_score
+from nonconformist_DL.evaluation import ClassIcpCvHelper, RegIcpCvHelper
+from nonconformist_DL.evaluation import class_avg_c, class_mean_errors
+from nonconformist_DL.evaluation import reg_mean_errors, reg_median_size
 
 
 def score_model(icp, icp_name, ds, ds_name, scoring_funcs):

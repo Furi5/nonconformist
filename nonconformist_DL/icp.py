@@ -13,9 +13,9 @@ from functools import partial
 import numpy as np
 from sklearn.base import BaseEstimator
 
-from nonconformist.base import RegressorMixin, ClassifierMixin
-from nonconformist.util import calc_p
-
+from nonconformist_DL.base import RegressorMixin, ClassifierMixin
+from nonconformist_DL.util import calc_p
+from nonconformist_DL.nc import MarginErrFunc
 
 # -----------------------------------------------------------------------------
 # Base inductive conformal predictor
@@ -116,12 +116,79 @@ class BaseIcp(BaseEstimator):
 			self.cal_x, self.cal_y = x, y
 
 
+class BaseIcpDl(BaseEstimator):
+	"""Base class for inductive conformal predictors with external predictions."""
+	def __init__(self, nc_function, condition=None):
+		self.nc_function = nc_function
+		default_condition = lambda x: 0
+		is_default = (callable(condition) and
+                      (condition.__code__.co_code ==
+                       default_condition.__code__.co_code))
+
+		if is_default:
+			self.condition = condition
+			self.conditional = False
+		elif callable(condition):
+			self.condition = condition
+			self.conditional = True
+		else:
+			self.condition = lambda x: 0
+			self.conditional = False
+
+	def calibrate(self, y_true, y_pred, increment=False):
+		"""Calibrate conformal predictor based on provided true and predicted values.
+
+        Parameters
+        ----------
+        y_true : numpy array of shape [n_samples]
+            True outputs of examples for calibrating the conformal predictor.
+
+        y_pred : numpy array of shape [n_samples]
+            Predictions from the deep learning model.
+
+        increment : boolean
+            If ``True``, performs an incremental recalibration of the conformal
+            predictor. The supplied ``y_true`` and ``y_pred`` are added to the 
+            set of previously existing calibration examples.
+
+        Returns
+        -------
+        None
+        """
+        # Update calibration set
+		self._calibrate_hook(y_true, increment)
+		self._update_calibration_set(y_true, y_pred, increment)
+
+        # Calculate nonconformity scores based on predictions
+		if self.conditional:
+			category_map = np.array([self.condition((y_pred[i], y_true[i]))
+                                     for i in range(y_true.size)])
+			self.categories = np.unique(category_map)
+			self.cal_scores = defaultdict(partial(np.ndarray, 0))
+
+			for cond in self.categories:
+				idx = category_map == cond
+                # Calculate nonconformity scores using predictions and true values
+				cal_scores = self.nc_function.apply(y_pred[idx], y_true[idx])/np.ones(y_true[idx].size)
+				self.cal_scores[cond] = np.sort(cal_scores)[::-1]
+		else:
+			self.categories = np.array([0])
+            # Calculate nonconformity scores for the entire calibration set
+			cal_scores = self.nc_function.apply(y_pred, y_true)/np.ones(y_true)
+			self.cal_scores = {0: np.sort(cal_scores)[::-1]}
+
+	def _update_calibration_set(self, y_true, y_pred, increment):
+		if increment and hasattr(self, 'cal_y') and hasattr(self, 'cal_pred'):
+			self.cal_y = np.hstack([self.cal_y, y_true])
+			self.cal_pred = np.hstack([self.cal_pred, y_pred])
+		else:
+			self.cal_y, self.cal_pred = y_true, y_pred
+
 # -----------------------------------------------------------------------------
 # Inductive conformal classifier
 # -----------------------------------------------------------------------------
 class IcpClassifier(BaseIcp, ClassifierMixin):
 	"""Inductive conformal classifier.
-
 	Parameters
 	----------
 	nc_function : BaseScorer
@@ -286,6 +353,116 @@ class IcpClassifier(BaseIcp, ClassifierMixin):
 		confidence = 1 - p.max(axis=1)
 
 		return np.array([label, confidence, credibility]).T
+
+
+class IcpClassifierDl(BaseIcpDl, ClassifierMixin):
+	def __init__(self, nc_function=MarginErrFunc(), condition=None, smoothing=True):
+		super(IcpClassifierDl, self).__init__(nc_function, condition)
+		self.classes = None
+		self.smoothing = smoothing
+  
+	def _calibrate_hook(self, y_true, increment=False):
+			self._update_classes(y_true, increment)
+
+	def _update_classes(self, y_true, increment):
+		if self.classes is None or not increment:
+			self.classes = np.unique(y_true)
+		else:
+			self.classes = np.unique(np.hstack([self.classes, y_true]))
+
+	def predict(self, y_pred, significance=None):
+		"""Predict the output values for a set of input patterns.
+		significance : float or None
+			Significance level (maximum allowed error rate) of predictions.
+			Should be a float between 0 and 1. If ``None``, then the p-values
+			are output rather than the predictions.
+
+		Returns
+		-------
+		p : numpy array of shape [n_samples, n_classes]
+			If significance is ``None``, then p contains the p-values for each
+			sample-class pair; if significance is a float between 0 and 1, then
+			p is a boolean array denoting which labels are included in the
+			prediction sets.
+		"""
+		# TODO: if x == self.last_x ...
+		n_test_objects = y_pred.shape[0]
+		p = np.zeros((n_test_objects, self.classes.size))
+		ncal_ngt_neq = self._get_stats(y_pred)
+
+		for i in range(len(self.classes)):
+			for j in range(n_test_objects):
+				p[j, i] = calc_p(ncal_ngt_neq[j, i, 0],
+				                 ncal_ngt_neq[j, i, 1],
+				                 ncal_ngt_neq[j, i, 2],
+				                 self.smoothing)
+
+		if significance is not None:
+			return p > significance
+		else:
+			return p
+
+	def _get_stats(self, y_pred):
+		n_test_objects = len(y_pred)
+		# print('y_pred-1',y_pred)
+		ncal_ngt_neq = np.zeros((n_test_objects, self.classes.size, 3))
+		for i, c in enumerate(self.classes):
+			test_class = np.zeros(len(y_pred), dtype=self.classes.dtype)
+			test_class.fill(c)
+			# print('y_pred-2',y_pred)
+
+			# TODO: maybe calculate p-values using cython or similar
+			# TODO: interpolated p-values
+
+			# TODO: nc_function.calc_nc should take X * {y1, y2, ... ,yn}
+			# print('before y_pred', y_pred, 'test_class', test_class)
+			test_nc_scores = self.nc_function.apply(y_pred, test_class)
+			# print('after y_pred', y_pred, 'test_class', test_class)
+   
+			# print('test_nc_scores', test_nc_scores)
+			for j, nc in enumerate(test_nc_scores):
+				cal_scores = self.cal_scores[self.condition((y_pred[j], c))][::-1]
+				n_cal = cal_scores.size
+
+				idx_left = np.searchsorted(cal_scores, nc, 'left')
+				idx_right = np.searchsorted(cal_scores, nc, 'right')
+				
+				# print('n_cal', n_cal, 'idx_left', idx_left, 'idx_right', idx_right)
+
+				ncal_ngt_neq[j, i, 0] = n_cal
+				ncal_ngt_neq[j, i, 1] = n_cal - idx_right
+				ncal_ngt_neq[j, i, 2] = idx_right - idx_left
+
+		return ncal_ngt_neq
+
+	def predict_conf(self, y_pred):
+		"""Predict the output values for a set of input patterns, using
+		the confidence-and-credibility output scheme.
+
+		Parameters
+		----------
+		x : numpy array of shape [n_samples, n_features]
+			Inputs of patters for which to predict output values.
+
+		Returns
+		-------
+		p : numpy array of shape [n_samples, 3]
+			p contains three columns: the first column contains the most
+			likely class for each test pattern; the second column contains
+			the confidence in the predicted class label, and the third column
+			contains the credibility of the prediction.
+		"""
+		p = self.predict(y_pred, significance=None)
+		label = p.argmax(axis=1)
+		credibility = p.max(axis=1)
+		for i, idx in enumerate(label):
+			p[i, idx] = -np.inf
+		confidence = 1 - p.max(axis=1)
+
+		return np.array([label, confidence, credibility]).T
+
+
+
 
 
 # -----------------------------------------------------------------------------

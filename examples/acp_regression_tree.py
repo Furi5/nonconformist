@@ -12,12 +12,12 @@ import pandas as pd
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.datasets import load_diabetes
 
-from nonconformist.base import RegressorAdapter
-from nonconformist.icp import IcpRegressor
-from nonconformist.nc import RegressorNc
-from nonconformist.acp import AggregatedCp
-from nonconformist.acp import RandomSubSampler, BootstrapSampler, CrossSampler
-from nonconformist.evaluation import reg_mean_errors
+from nonconformist_DL.base import RegressorAdapter
+from nonconformist_DL.icp import IcpRegressor
+from nonconformist_DL.nc import RegressorNc
+from nonconformist_DL.acp import AggregatedCp
+from nonconformist_DL.acp import RandomSubSampler, BootstrapSampler, CrossSampler
+from nonconformist_DL.evaluation import reg_mean_errors
 
 # -----------------------------------------------------------------------------
 # Experiment setup
